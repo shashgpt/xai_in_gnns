@@ -30,8 +30,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--label', type=int, default=0)
 args = parser.parse_args()
 
-
-def process_patient(infile, min_length_of_stay=0):
+LABELLIST = ['EXPIRE_FLAG', 'cohort', 'Obesity', 'Non.Adherence',
+       'Developmental.Delay.Retardation', 'Advanced.Heart.Disease',
+       'Advanced.Lung.Disease',
+       'Schizophrenia.and.other.Psychiatric.Disorders', 'Alcohol.Abuse',
+       'Other.Substance.Abuse', 'Chronic.Pain.Fibromyalgia',
+       'Chronic.Neurological.Dystrophies', 'Advanced.Cancer', 'Depression',
+       'Dementia', 'Unsure']
+def process_patient(infile, label, min_length_of_stay=0):
+    
+    labelname = LABELLIST[label]
     
     inff = open(infile, 'r') # "/root/IDL_Project/MIMIC3/patient.csv"
     count = 0
@@ -48,12 +56,13 @@ def process_patient(infile, min_length_of_stay=0):
             gender = 1
         
         patient_node = patient_id + ":" + encounter_id
-        expired = line['EXPIRE_FLAG'] == "1"
+        label = line[labelname] == "1"
+#         expired = line['EXPIRE_FLAG'] == "1"
 
         if patient_node not in node2index["patient"]:
             node2index["patient"][patient_node] = len(node2index["patient"])
             nodeindex = node2index["patient"][patient_node]
-            patient2label.append(expired)
+            patient2label.append(label)
             patient2feat.append([0 for _ in range(NUMLABS)] + [age, gender])
             
         count += 1
@@ -151,7 +160,7 @@ diagnosis_file = input_path + 'medication.csv'  # '/DIAGNOSES_ICD.csv'
 treatment_file = input_path + 'procedure.csv' #'/PROCEDURES_ICD.csv'
 lab_file = input_path + '/lab_final.csv'
 
-process_patient(admission_dx_file)
+process_patient(admission_dx_file, args.label)
 process_diagnosis(diagnosis_file)
 process_treatment(treatment_file)
 process_lab(lab_file)

@@ -1,9 +1,9 @@
 lrset=("0.0005" "0.001")
 nlset=("1" "3")
 
-for lab in {1..15}
+for t in 0 1 2
 do
-    for t in 0 1 2
+    for lab in {0..15}
     do
         for lr in ${lrset[@]}
         do
