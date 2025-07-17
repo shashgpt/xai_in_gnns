@@ -7,6 +7,7 @@ import pandas as pd
 import csv
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
+
 import sys
 import pickle
 from sklearn import model_selection
@@ -16,6 +17,9 @@ import numpy as np
 import os
 from scipy.sparse import csr_matrix
 
+#Suppressing warnings
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 class EncounterInfo(object):
     def __init__(self, patient_id, encounter_id, labeled):
@@ -54,12 +58,12 @@ def process_patient(infile, encounter_dict, label, min_length_of_stay=0):
 #         patient_dict_sorted[patient_id] = sorted(time_enc_tuples)
 
     evaluation_label = ['EXPIRE_FLAG', 'cohort', 'Obesity', 'Non.Adherence',
-       'Developmental.Delay.Retardation', 'Advanced.Heart.Disease',
-       'Advanced.Lung.Disease',
-       'Schizophrenia.and.other.Psychiatric.Disorders', 'Alcohol.Abuse',
-       'Other.Substance.Abuse', 'Chronic.Pain.Fibromyalgia',
-       'Chronic.Neurological.Dystrophies', 'Advanced.Cancer', 'Depression',
-       'Dementia', 'Unsure']
+                        'Developmental.Delay.Retardation', 'Advanced.Heart.Disease',
+                        'Advanced.Lung.Disease',
+                        'Schizophrenia.and.other.Psychiatric.Disorders', 'Alcohol.Abuse',
+                        'Other.Substance.Abuse', 'Chronic.Pain.Fibromyalgia',
+                        'Chronic.Neurological.Dystrophies', 'Advanced.Cancer', 'Depression',
+                        'Dementia', 'Unsure']
     label_name = evaluation_label[label]
     
     patient2label = {}
@@ -337,13 +341,22 @@ def build_seqex(enc_dict,
 
 def train_val_test_split(patient_ids, random_seed=100):
     train_ids, val_ids, test_ids = [], [], []
-    with open("../../../HeteroGNN/rawdata/train_ids.txt", "r") as f:
+    # with open("../../../HeteroGNN/rawdata/train_ids.txt", "r") as f:
+    #     for line in f.readlines():
+    #         train_ids.append(line.rstrip())
+    # with open("../../../HeteroGNN/rawdata/val_ids.txt", "r") as f:
+    #     for line in f.readlines():
+    #         val_ids.append(line.rstrip())
+    # with open("../../../HeteroGNN/rawdata/test_ids.txt", "r") as f:
+    #     for line in f.readlines():
+    #         test_ids.append(line.rstrip())
+    with open("train_ids.txt", "r") as f:
         for line in f.readlines():
             train_ids.append(line.rstrip())
-    with open("../../../HeteroGNN/rawdata/val_ids.txt", "r") as f:
+    with open("val_ids.txt", "r") as f:
         for line in f.readlines():
             val_ids.append(line.rstrip())
-    with open("../../../HeteroGNN/rawdata/test_ids.txt", "r") as f:
+    with open("test_ids.txt", "r") as f:
         for line in f.readlines():
             test_ids.append(line.rstrip())
             
@@ -429,8 +442,6 @@ def tf2csr(output_path, partition, maps, labflag=False):
 """Set <input_path> to where the raw MIMIC CSV files are located.
 Set <output_path> to where you want the output files to be.
 """
-
-
 def main():
     parser = argparse.ArgumentParser(description='File path')
     parser.add_argument('--input_path', type=str, default='../../rawdata/mimic/', help='input path of original dataset')
@@ -465,8 +476,7 @@ def main():
         mean_std = get_lab_mean_std(lab_file, train_ids)
         encounter_dict = process_lab(lab_file, encounter_dict, mean_std)
     
-    key_list, seqex_list, dx_map, proc_map, lab_map = build_seqex(
-        encounter_dict, skip_duplicate=False, min_num_codes=1, max_num_codes=200, labflag=args.exist_lab)
+    key_list, seqex_list, dx_map, proc_map, lab_map = build_seqex(encounter_dict, skip_duplicate=False, min_num_codes=1, max_num_codes=200, labflag=args.exist_lab)
 #     print(key_list)
     train_seqex = get_partitions(seqex_list, set(train_ids))
     val_seqex = get_partitions(seqex_list, set(val_ids))

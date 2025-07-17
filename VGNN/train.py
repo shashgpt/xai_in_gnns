@@ -14,6 +14,7 @@ import os
 import logging
 import sys
 import time
+
 if torch.cuda.is_available():
     device = 'cuda'
 else:
@@ -42,7 +43,7 @@ def main():
     result_path = args.result_path + str(args.label)
     data_path = args.data_path + "/" + str(args.label) + "/"
     in_feature = args.embedding_size
-    out_feature =args.embedding_size
+    out_feature = args.embedding_size
     n_layers = args.num_of_layers - 1
     lr = args.lr
     args.reg = (args.reg == "True")
@@ -75,13 +76,10 @@ def main():
     num_of_nodes = train_x.shape[1] + 1
     device_ids = range(torch.cuda.device_count())
     # eICU has 1 feature on previous readmission that we didn't include in the graph
-    model = VariationalGNN(in_feature, out_feature, num_of_nodes, n_heads, n_layers,
-                           dropout=dropout, alpha=alpha, variational=args.reg, none_graph_features=0).to(device)
+    model = VariationalGNN(in_feature, out_feature, num_of_nodes, n_heads, n_layers, dropout=dropout, alpha=alpha, variational=args.reg, none_graph_features=0).to(device)
     model = nn.DataParallel(model, device_ids=device_ids)
-    val_loader = DataLoader(dataset=EHRData(val_x, val_y), batch_size=BATCH_SIZE,
-                            collate_fn=collate_fn, num_workers=torch.cuda.device_count(), shuffle=False)
-    test_loader = DataLoader(dataset=EHRData(test_x, test_y), batch_size=BATCH_SIZE,
-                            collate_fn=collate_fn, num_workers=torch.cuda.device_count(), shuffle=False)
+    val_loader = DataLoader(dataset=EHRData(val_x, val_y), batch_size=BATCH_SIZE, collate_fn=collate_fn, num_workers=torch.cuda.device_count(), shuffle=False)
+    test_loader = DataLoader(dataset=EHRData(test_x, test_y), batch_size=BATCH_SIZE, collate_fn=collate_fn, num_workers=torch.cuda.device_count(), shuffle=False)
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr, weight_decay=1e-8)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
@@ -92,8 +90,7 @@ def main():
     for epoch in range(number_of_epochs):
         print("Learning rate:{}".format(optimizer.param_groups[0]['lr']))
         ratio = Counter(train_y)
-        train_loader = DataLoader(dataset=EHRData(train_x, train_y), batch_size=BATCH_SIZE,
-                                  collate_fn=collate_fn, num_workers=torch.cuda.device_count(), shuffle=True)
+        train_loader = DataLoader(dataset=EHRData(train_x, train_y), batch_size=BATCH_SIZE, collate_fn=collate_fn, num_workers=torch.cuda.device_count(), shuffle=True)
         pos_weight = torch.ones(1).float().to(device) * (ratio[True] / ratio[False])
         criterion = nn.BCEWithLogitsLoss(reduction="sum", pos_weight=pos_weight)
         t = tqdm(iter(train_loader), leave=False, total=len(train_loader))
@@ -105,8 +102,7 @@ def main():
 #         if idx % eval_freq == 0 and idx > 0:
 #         torch.save(model.state_dict(), "{}/parameter{}_{}".format(result_root, epoch, idx))
         val_auprc, _ = evaluate(model, val_loader, len(val_y))
-        logging.info('epoch:%d AUPRC:%f; loss: %.4f, bce: %.4f, kld: %.4f' %
-                         (epoch + 1, val_auprc, total_loss[0]/idx, total_loss[1]/idx, total_loss[2]/idx))
+        logging.info('epoch:%d AUPRC:%f; loss: %.4f, bce: %.4f, kld: %.4f' % (epoch + 1, val_auprc, total_loss[0]/idx, total_loss[1]/idx, total_loss[2]/idx))
         
         test_auprc, _ = evaluate(model, test_loader, len(val_y))
         if max_valid_auprc < val_auprc:
@@ -114,8 +110,7 @@ def main():
             max_test_auprc = test_auprc
         logging.info('[END] AUPRC-Valid:%f; AUPRC-Test: %f' % (val_auprc, test_auprc))
         
-        print('epoch:%d AUPRC:%f; loss: %.4f, bce: %.4f, kld: %.4f' %
-                  (epoch + 1, val_auprc, total_loss[0]/idx, total_loss[1]/idx, total_loss[2]/idx))
+        print('epoch:%d AUPRC:%f; loss: %.4f, bce: %.4f, kld: %.4f' % (epoch + 1, val_auprc, total_loss[0]/idx, total_loss[1]/idx, total_loss[2]/idx))
 #         if idx % 50 == 0 and idx > 0:
         t.set_description('[epoch:%d] loss: %.4f, bce: %.4f, kld: %.4f' %
                           (epoch + 1, total_loss[0]/idx, total_loss[1]/idx, total_loss[2]/idx))
@@ -129,10 +124,9 @@ def main():
     print("End Training")
     val_auprc, _ = evaluate(model, val_loader, len(val_y))
     print(max_valid_auprc, max_test_auprc)
-#     test_auprc, _ = evaluate(model, test_loader, len(val_y))
-#     logging.info('[END] AUPRC-Valid:%f; AUPRC-Test: %f' % (val_auprc, test_auprc))
-#     print('[END] AUPRC-Valid:%f; AUPRC-Test: %f' % (val_auprc, test_auprc))
-
+    test_auprc, _ = evaluate(model, test_loader, len(val_y))
+    logging.info('[END] AUPRC-Valid:%f; AUPRC-Test: %f' % (val_auprc, test_auprc))
+    print('[END] AUPRC-Valid:%f; AUPRC-Test: %f' % (val_auprc, test_auprc))
 
 if __name__ == '__main__':
     main()
