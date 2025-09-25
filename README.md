@@ -1,2 +1,2 @@
 # XAI in Graph Neural Networks
-## Steps to reproduce the results
+## Steps to run the GraphEHR2 notebook
